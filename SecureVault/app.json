@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "SecureVault",
+    "slug": "SecureVault",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A0E1A"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#0A0E1A"
+      },
+      "package": "com.abhilaash077.securevault",
+      "versionCode": 1,
+      "predictiveBackGestureEnabled": false
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-font",
+      "expo-local-authentication",
+      [
+        "expo-document-picker",
+        {
+          "iCloudContainerEnvironment": "Production"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "3279593d-c282-4e3d-973b-8281d4e85253"
+      }
+    }
+  }
+}
