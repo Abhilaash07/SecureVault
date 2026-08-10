@@ -31,6 +31,10 @@ export default function RootNavigator() {
   useEffect(() => {
     const unsubscribe = onAuthChange(async (currentUser) => {
       const currentSession = useSessionStore.getState();
+      if (currentSession.isSigningUp) {
+        setLoading(false);
+        return;
+      }
       if (!currentSession.isDecoy) {
         if (currentUser) {
           if (currentUser.displayName) {

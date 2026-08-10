@@ -11,8 +11,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors, spacing, radius } from '../theme';
-import { listEncryptedFiles, deleteFile, shareFile } from '../services/fileService';
-import * as FileSystem from 'expo-file-system/legacy';
+import { listEncryptedFiles, deleteFile, shareFile, getFilePath } from '../services/fileService';
 import { useSessionStore } from '../services/sessionStore';
 
 export default function VaultScreen() {
@@ -57,7 +56,7 @@ export default function VaultScreen() {
               setFiles((prev) => prev.filter((f) => f !== fileName));
               Alert.alert('Success', 'File deleted successfully');
             } else {
-              const path = FileSystem.documentDirectory + fileName;
+              const path = getFilePath(fileName);
               await deleteFile(path);
               loadFiles();
             }
@@ -75,7 +74,7 @@ export default function VaultScreen() {
       );
       return;
     }
-    const path = FileSystem.documentDirectory + fileName;
+    const path = getFilePath(fileName);
     await shareFile(path);
   }
 

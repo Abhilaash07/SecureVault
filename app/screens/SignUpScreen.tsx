@@ -12,7 +12,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { colors, fontFamily, spacing, radius } from '../theme';
-import { signUp } from '../services/auth';
+import { signUp, logOut } from '../services/auth';
 import * as SecureStore from 'expo-secure-store';
 import { useSessionStore } from '../services/sessionStore';
 
@@ -46,9 +46,11 @@ export default function SignUpScreen({ navigation }: any) {
       return;
     }
     setLoading(true);
+    useSessionStore.getState().setIsSigningUp(true);
     const { user, error } = await signUp(email, password, name);
-    setLoading(false);
     if (error) {
+      useSessionStore.getState().setIsSigningUp(false);
+      setLoading(false);
       Alert.alert('Sign Up Failed', error);
     } else {
       try {
@@ -56,12 +58,27 @@ export default function SignUpScreen({ navigation }: any) {
         const key = user?.uid ? `decrypt_count_${user.uid}` : 'decrypt_count';
         await SecureStore.setItemAsync(key, '0');
         await SecureStore.setItemAsync('decrypt_count', '0');
-        useSessionStore.getState().setSession({
-          email: email,
-          uid: user?.uid || 'user_id',
-          displayName: name
-        }, false);
+        
+        await logOut();
+        
+        useSessionStore.getState().setIsSigningUp(false);
+        setLoading(false);
+
+        Alert.alert(
+          'Success',
+          'Account created successfully! Please login to your account.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                navigation.goBack();
+              }
+            }
+          ]
+        );
       } catch (e) {
+        useSessionStore.getState().setIsSigningUp(false);
+        setLoading(false);
         console.log('Error saving display name:', e);
       }
     }

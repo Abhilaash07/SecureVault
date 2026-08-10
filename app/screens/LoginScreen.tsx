@@ -16,8 +16,7 @@ import { signIn } from '../services/auth';
 import * as SecureStore from 'expo-secure-store';
 import { useSessionStore } from '../services/sessionStore';
 import { logEvent } from '../services/auditLog';
-import { listEncryptedFiles, deleteFile } from '../services/fileService';
-import * as FileSystem from 'expo-file-system/legacy';
+import { wipeAllData } from '../services/fileService';
 
 export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
@@ -71,12 +70,8 @@ export default function LoginScreen({ navigation }: any) {
 
   async function executeSelfDestruct() {
     try {
-      // 1. Delete all encrypted files
-      const files = await listEncryptedFiles();
-      for (const file of files) {
-        const path = FileSystem.documentDirectory + file;
-        await deleteFile(path);
-      }
+      // 1. Delete all encrypted files and folders
+      await wipeAllData();
 
       // 2. Clear all key manager keys in SecureStore
       const rawIndex = await SecureStore.getItemAsync('key_index');

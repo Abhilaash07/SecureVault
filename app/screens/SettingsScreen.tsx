@@ -16,9 +16,8 @@ import {
 import { colors, spacing, radius } from '../theme';
 import { auth } from '../services/firebaseConfig';
 import { logOut } from '../services/auth';
-import { listEncryptedFiles, deleteFile } from '../services/fileService';
+import { listEncryptedFiles, deleteFile, getFilePath } from '../services/fileService';
 import * as SecureStore from 'expo-secure-store';
-import * as FileSystem from 'expo-file-system/legacy';
 import { useSessionStore } from '../services/sessionStore';
 import { getLogs, clearLogs } from '../services/auditLog';
 
@@ -231,7 +230,7 @@ export default function SettingsScreen() {
             } else {
               const files = await listEncryptedFiles();
               for (const file of files) {
-                const path = FileSystem.documentDirectory + file;
+                const path = getFilePath(file);
                 await deleteFile(path);
               }
               setFileCount(0);

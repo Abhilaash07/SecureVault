@@ -17,7 +17,11 @@
         "backgroundColor": "#0A0E1A"
       },
       "package": "com.abhilaash077.securevault",
-      "versionCode": 1
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ]
     },
     "plugins": [
       "expo-secure-store",
@@ -34,6 +38,7 @@
       "eas": {
         "projectId": "3279593d-c282-4e3d-973b-8281d4e85253"
       }
-    }
+    },
+    "owner": "abhilaash077"
   }
 }
