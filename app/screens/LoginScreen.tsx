@@ -12,7 +12,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { colors, fontFamily, spacing, radius } from '../theme';
-import { signIn } from '../services/auth';
+import { signIn, sendPasswordReset } from '../services/auth';
 import * as SecureStore from 'expo-secure-store';
 import { useSessionStore } from '../services/sessionStore';
 import { logEvent } from '../services/auditLog';
@@ -186,6 +186,41 @@ export default function LoginScreen({ navigation }: any) {
     }
   }
 
+  async function handleForgotPassword() {
+    if (lockoutRemaining > 0) {
+      Alert.alert('Lockout Active', `Too many failed attempts. Try again in ${formatLockoutTime(lockoutRemaining)}.`);
+      return;
+    }
+    if (!email) {
+      Alert.alert(
+        'Reset Password',
+        'Please enter your email address in the Email field first, then tap Forgot Password.'
+      );
+      return;
+    }
+    
+    Alert.alert(
+      'Reset Password',
+      `Send a password reset link to ${email}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Send Reset Link',
+          onPress: async () => {
+            setLoading(true);
+            const { error } = await sendPasswordReset(email);
+            setLoading(false);
+            if (error) {
+              Alert.alert('Error', error);
+            } else {
+              Alert.alert('Success', `Password reset email has been sent to ${email}!`);
+            }
+          },
+        },
+      ]
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -244,6 +279,14 @@ export default function LoginScreen({ navigation }: any) {
             </TouchableOpacity>
           </View>
         </View>
+
+        <TouchableOpacity
+          onPress={handleForgotPassword}
+          style={styles.forgotPasswordContainer}
+          disabled={lockoutRemaining > 0}
+        >
+          <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity 
           style={[styles.button, lockoutRemaining > 0 && { opacity: 0.5 }]} 
@@ -336,4 +379,15 @@ const styles = StyleSheet.create({
   },
   outlineButton: { alignItems: 'center', padding: 12 },
   outlineButtonText: { color: colors.accent, fontSize: 14 },
+  forgotPasswordContainer: {
+    alignSelf: 'flex-end',
+    marginTop: -8,
+    marginBottom: 16,
+    marginRight: 4,
+  },
+  forgotPasswordText: {
+    color: colors.accent,
+    fontSize: 13,
+    fontWeight: '600',
+  },
 });

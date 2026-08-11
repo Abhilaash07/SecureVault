@@ -4,9 +4,19 @@ import {
   signOut,
   onAuthStateChanged,
   updateProfile,
+  sendPasswordResetEmail,
   User,
 } from 'firebase/auth';
 import { auth } from './firebaseConfig';
+
+export async function sendPasswordReset(email: string) {
+  try {
+    await sendPasswordResetEmail(auth, email);
+    return { error: null };
+  } catch (error: any) {
+    return { error: error.message };
+  }
+}
 
 export async function signUp(email: string, password: string, displayName: string) {
   try {
