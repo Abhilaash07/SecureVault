@@ -25,12 +25,38 @@ export default function SignUpScreen({ navigation }: any) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  function getPasswordStrength(pass: string): { label: string; color: string; width: string } {
-    if (pass.length === 0) return { label: '', color: 'transparent', width: '0%' };
-    if (pass.length < 6) return { label: 'Weak', color: colors.danger, width: '25%' };
-    if (pass.length < 8) return { label: 'Fair', color: colors.warning, width: '50%' };
-    if (pass.length < 12) return { label: 'Strong', color: colors.success, width: '75%' };
-    return { label: 'Very Strong', color: colors.success, width: '100%' };
+  function getPasswordStrength(pass: string): { label: string; color: string; width: string; score: number } {
+    if (pass.length === 0) return { label: '', color: 'transparent', width: '0%', score: 0 };
+    
+    let score = 0;
+    const hasLength = pass.length >= 8;
+    const hasUpper = /[A-Z]/.test(pass);
+    const hasLower = /[a-z]/.test(pass);
+    const hasNumber = /[0-9]/.test(pass);
+    const hasSymbol = /[^A-Za-z0-9]/.test(pass);
+    
+    if (hasLength) score += 1;
+    if (hasUpper) score += 1;
+    if (hasLower) score += 1;
+    if (hasNumber) score += 1;
+    if (hasSymbol) score += 1;
+    if (pass.length >= 12) score += 1;
+
+    if (pass.length < 8) {
+      return { label: 'Weak (Min 8 chars)', color: colors.danger, width: '25%', score: 1 };
+    }
+    
+    if (!hasSymbol || !hasUpper || !hasLower || !hasNumber) {
+      if (score <= 3) {
+        return { label: 'Weak (Need uppercase, numbers & symbols)', color: colors.danger, width: '25%', score: 2 };
+      }
+      return { label: 'Fair (Need symbols/special chars)', color: colors.warning, width: '50%', score: 3 };
+    }
+
+    if (score >= 5) {
+      return { label: 'Very Strong', color: colors.success, width: '100%', score: 5 };
+    }
+    return { label: 'Strong', color: colors.success, width: '75%', score: 4 };
   }
 
   async function handleSignUp() {
@@ -42,8 +68,12 @@ export default function SignUpScreen({ navigation }: any) {
       Alert.alert('Error', 'Passwords do not match');
       return;
     }
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+    const strength = getPasswordStrength(password);
+    if (strength.score < 4) {
+      Alert.alert(
+        'Weak Password',
+        'For security, your password must be Strong or Very Strong. It must contain at least 8 characters, including uppercase, lowercase, numbers, and symbols/special characters.'
+      );
       return;
     }
     setLoading(true);
