@@ -47,8 +47,9 @@ function runSuite(suiteInfo) {
     console.log(`   File   : ${suiteInfo.file}`);
     console.log(`${'─'.repeat(70)}`);
 
+    const mochaBin = require.resolve('mocha/bin/mocha.js');
     const args = [
-      'node_modules/.bin/mocha',
+      mochaBin,
       suiteInfo.file,
       '--timeout', '60000',
       '--reporter', 'json',

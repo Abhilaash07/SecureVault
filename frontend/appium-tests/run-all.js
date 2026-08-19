@@ -42,8 +42,9 @@ function runSuite(suiteInfo) {
     console.log(`▶  Running: ${suiteInfo.suiteName}`);
     console.log(`${'─'.repeat(70)}`);
 
+    const mochaBin = require.resolve('mocha/bin/mocha.js');
     const proc = spawn(process.execPath, [
-      'node_modules/.bin/mocha',
+      mochaBin,
       suiteInfo.file,
       '--timeout', '120000',
       '--reporter', 'json',
