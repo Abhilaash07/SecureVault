@@ -28,8 +28,8 @@
     "test:functional": "mocha tests/10_functional.test.js --timeout 30000"
   },
   "dependencies": {
-    "chai": "^5.1.1",
-    "chai-as-promised": "^8.0.0",
+    "chai": "^4.4.1",
+    "chai-as-promised": "^7.1.1",
     "chromedriver": "^124.0.0",
     "cross-env": "^7.0.3",
     "exceljs": "^4.4.0",

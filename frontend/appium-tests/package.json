@@ -34,8 +34,8 @@
     "appium-uiautomator2-driver": "^3.0.0",
     "exceljs": "^4.4.0",
     "mocha": "^10.4.0",
-    "chai": "^5.1.1",
-    "chai-as-promised": "^8.0.0",
+    "chai": "^4.4.1",
+    "chai-as-promised": "^7.1.1",
     "cross-env": "^7.0.3"
   },
   "engines": {
