@@ -1,0 +1,42 @@
+{
+  "name": "securevault-selenium-tests",
+  "version": "1.0.0",
+  "description": "Selenium E2E test suite for SecureVault web application",
+  "main": "run-all.js",
+  "scripts": {
+    "test": "node run-all.js",
+    "test:ci": "cross-env CI_MOCK=true mocha tests/**/*.test.js --timeout 60000 --reporter spec --exit",
+    "test:ci:auth": "cross-env CI_MOCK=true mocha tests/01_auth.test.js --timeout 60000 --reporter spec --exit",
+    "test:ci:home": "cross-env CI_MOCK=true mocha tests/02_home.test.js --timeout 60000 --reporter spec --exit",
+    "test:ci:encrypt": "cross-env CI_MOCK=true mocha tests/03_encrypt.test.js --timeout 60000 --reporter spec --exit",
+    "test:ci:decrypt": "cross-env CI_MOCK=true mocha tests/04_decrypt.test.js --timeout 60000 --reporter spec --exit",
+    "test:ci:vault": "cross-env CI_MOCK=true mocha tests/05_vault.test.js --timeout 60000 --reporter spec --exit",
+    "test:ci:settings": "cross-env CI_MOCK=true mocha tests/06_settings.test.js --timeout 60000 --reporter spec --exit",
+    "test:ci:security": "cross-env CI_MOCK=true mocha tests/07_security.test.js --timeout 60000 --reporter spec --exit",
+    "test:ci:uiux": "cross-env CI_MOCK=true mocha tests/08_ui_ux.test.js --timeout 60000 --reporter spec --exit",
+    "test:ci:validation": "cross-env CI_MOCK=true mocha tests/09_validation.test.js --timeout 60000 --reporter spec --exit",
+    "test:ci:functional": "cross-env CI_MOCK=true mocha tests/10_functional.test.js --timeout 60000 --reporter spec --exit",
+    "test:auth": "mocha tests/01_auth.test.js --timeout 30000",
+    "test:home": "mocha tests/02_home.test.js --timeout 30000",
+    "test:encrypt": "mocha tests/03_encrypt.test.js --timeout 30000",
+    "test:decrypt": "mocha tests/04_decrypt.test.js --timeout 30000",
+    "test:vault": "mocha tests/05_vault.test.js --timeout 30000",
+    "test:settings": "mocha tests/06_settings.test.js --timeout 30000",
+    "test:security": "mocha tests/07_security.test.js --timeout 30000",
+    "test:uiux": "mocha tests/08_ui_ux.test.js --timeout 30000",
+    "test:validation": "mocha tests/09_validation.test.js --timeout 30000",
+    "test:functional": "mocha tests/10_functional.test.js --timeout 30000"
+  },
+  "dependencies": {
+    "chai": "^5.1.1",
+    "chai-as-promised": "^8.0.0",
+    "chromedriver": "^124.0.0",
+    "cross-env": "^7.0.3",
+    "exceljs": "^4.4.0",
+    "mocha": "^10.4.0",
+    "selenium-webdriver": "^4.18.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

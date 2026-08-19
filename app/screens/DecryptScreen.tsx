@@ -7,15 +7,19 @@ import {
   SafeAreaView,
   ScrollView,
   ActivityIndicator,
-  Alert,
   TextInput,
+  Platform,
+  useWindowDimensions,
 } from 'react-native';
+import { showAlert } from '../services/alert';
 import { colors, spacing, radius } from '../theme';
-import { pickFile, saveDecryptedFile, shareFile } from '../services/fileService';
+import { pickFile, saveDecryptedFile, shareFile, readFileAsText } from '../services/fileService';
 import { decryptData, decodeBase64 } from '../services/encryption';
 import { useSessionStore } from '../services/sessionStore';
 
 export default function DecryptScreen() {
+  const { width } = useWindowDimensions();
+  const isWebDesktop = Platform.OS === 'web' && width > 768;
   const isDecoy = useSessionStore((state) => state.isDecoy);
   const user = useSessionStore((state) => state.user);
   const [selectedFile, setSelectedFile] = useState<any>(null);
@@ -37,18 +41,18 @@ export default function DecryptScreen() {
         setSuccess(false);
       }
     } catch (err: any) {
-      Alert.alert('File Picker Error', err.message || 'Failed to select file');
+      showAlert('File Picker Error', err.message || 'Failed to select file');
     }
   }
 
   async function handleDecrypt() {
     if (!selectedFile) {
-      Alert.alert('Error', 'Please select an encrypted file first');
+      showAlert('Error', 'Please select an encrypted file first');
       return;
     }
     const secretKey = useAutoKey ? autoKey : password;
     if (!secretKey) {
-      Alert.alert('Error', useAutoKey ? 'Please paste your auto key' : 'Please enter the decryption password');
+      showAlert('Error', useAutoKey ? 'Please paste your auto key' : 'Please enter the decryption password');
       return;
     }
 
@@ -63,15 +67,12 @@ export default function DecryptScreen() {
         setAlgorithm('ChaCha20');
         setSuccess(true);
 
-        const SecureStore = await import('expo-secure-store');
+        const SecureStore = await import('../services/secureStore');
         const current = await SecureStore.getItemAsync('decrypt_count_decoy');
         const newCount = (current ? parseInt(current) : 0) + 1;
         await SecureStore.setItemAsync('decrypt_count_decoy', newCount.toString());
       } else {
-        const FileSystem = await import('expo-file-system/legacy');
-        const rawData = await FileSystem.readAsStringAsync(selectedFile.uri, {
-          encoding: 'utf8',
-        });
+        const rawData = await readFileAsText(selectedFile.uri);
 
         const dotIndex = rawData.indexOf('.');
         if (dotIndex === -1) throw new Error('Invalid encrypted file format');
@@ -91,7 +92,7 @@ export default function DecryptScreen() {
         );
 
         if (!decrypted) {
-          Alert.alert(
+          showAlert(
             'Wrong Key',
             useAutoKey
               ? 'The auto key is incorrect. Please check and try again.'
@@ -107,21 +108,21 @@ export default function DecryptScreen() {
         setAlgorithm(metadata.algorithm);
         setSuccess(true);
 
-        const SecureStore = await import('expo-secure-store');
+        const SecureStore = await import('../services/secureStore');
         const key = user?.uid ? `decrypt_count_${user.uid}` : 'decrypt_count';
         const current = await SecureStore.getItemAsync(key);
         const newCount = (current ? parseInt(current) : 0) + 1;
         await SecureStore.setItemAsync(key, newCount.toString());
       }
     } catch (error: any) {
-      Alert.alert('Decryption Failed', error.message);
+      showAlert('Decryption Failed', error.message);
     }
     setLoading(false);
   }
 
   async function handleShare() {
     if (isDecoy) {
-      Alert.alert(
+      showAlert(
         'Sharing Restricted',
         'Decoy session files cannot be shared outside the secure sandbox due to corporate security policies.'
       );
@@ -178,9 +179,17 @@ export default function DecryptScreen() {
             </View>
           </View>
 
-          <TouchableOpacity style={styles.button} onPress={handleShare}>
-            <Text style={styles.buttonText}>📤 Share File</Text>
-          </TouchableOpacity>
+          {Platform.OS === 'web' ? (
+            <View style={styles.webDownloadNote}>
+              <Text style={styles.webDownloadNoteText}>
+                ✅ File downloaded to your Downloads folder as "{originalName}"
+              </Text>
+            </View>
+          ) : (
+            <TouchableOpacity style={styles.button} onPress={handleShare}>
+              <Text style={styles.buttonText}>📤 Share File</Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity style={styles.outlineButton} onPress={handleReset}>
             <Text style={styles.outlineButtonText}>Decrypt Another File</Text>
@@ -463,5 +472,21 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontWeight: '600',
     maxWidth: 180,
+  },
+  webDownloadNote: {
+    backgroundColor: 'rgba(52, 211, 153, 0.1)',
+    borderRadius: radius.card,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(52, 211, 153, 0.3)',
+    alignItems: 'center',
+    width: '100%',
+  },
+  webDownloadNoteText: {
+    fontSize: 13,
+    color: colors.success,
+    textAlign: 'center',
+    fontWeight: '500',
   },
 });

@@ -1,0 +1,22 @@
+{
+  "name": "securevault-load-tests",
+  "version": "1.0.0",
+  "description": "SecureVault Load & Baseline Performance Testing – k6 + ExcelJS",
+  "main": "run-load-test.js",
+  "scripts": {
+    "test": "node run-load-test.js",
+    "test:baseline": "k6 run --vus=300 --duration=60s --out json=reports/k6-results.json baseline.js",
+    "test:stress": "k6 run --vus=500 --duration=120s baseline.js",
+    "test:spike": "k6 run baseline.js",
+    "report": "node run-load-test.js"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": ["k6", "load-testing", "performance", "securevault"],
+  "author": "SecureVault QA Team",
+  "license": "MIT"
+}

@@ -6,23 +6,28 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
-  Alert,
   RefreshControl,
+  Platform,
+  useWindowDimensions,
 } from 'react-native';
+import { showAlert } from '../services/alert';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors, spacing, radius } from '../theme';
 import { listEncryptedFiles, deleteFile, shareFile, getFilePath } from '../services/fileService';
 import { useSessionStore } from '../services/sessionStore';
 
 export default function VaultScreen() {
+  const { width } = useWindowDimensions();
+  const isWebDesktop = Platform.OS === 'web' && width > 768;
   const isDecoy = useSessionStore((state) => state.isDecoy);
+  const user = useSessionStore((state) => state.user);
   const [files, setFiles] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       loadFiles();
-    }, [isDecoy])
+    }, [isDecoy, user?.uid])
   );
 
   async function loadFiles() {
@@ -37,13 +42,13 @@ export default function VaultScreen() {
       ]);
     } else {
       const encFiles = await listEncryptedFiles();
-      setFiles(encFiles);
+      setFiles(Array.from(new Set(encFiles)));
     }
     setLoading(false);
   }
 
   async function handleDelete(fileName: string) {
-    Alert.alert(
+    showAlert(
       'Delete File',
       `Are you sure you want to delete ${fileName}?`,
       [
@@ -54,7 +59,7 @@ export default function VaultScreen() {
           onPress: async () => {
             if (isDecoy) {
               setFiles((prev) => prev.filter((f) => f !== fileName));
-              Alert.alert('Success', 'File deleted successfully');
+              showAlert('Success', 'File deleted successfully');
             } else {
               const path = getFilePath(fileName);
               await deleteFile(path);
@@ -68,7 +73,7 @@ export default function VaultScreen() {
 
   async function handleShare(fileName: string) {
     if (isDecoy) {
-      Alert.alert(
+      showAlert(
         'Sharing Restricted',
         'Decoy session files cannot be shared outside the secure sandbox due to corporate security policies.'
       );
@@ -94,68 +99,83 @@ export default function VaultScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>🗄️ Secure Vault</Text>
-        <Text style={styles.subtitle}>{files.length} encrypted files</Text>
-      </View>
+    <SafeAreaView style={isWebDesktop ? styles.desktopContainer : styles.container}>
+      <View style={isWebDesktop ? styles.desktopWrapper : { flex: 1 }}>
+        <View style={styles.header}>
+          <Text style={styles.title}>🗄️ Secure Vault</Text>
+          <Text style={styles.subtitle}>{files.length} encrypted files</Text>
+        </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={loading}
-            onRefresh={loadFiles}
-            tintColor={colors.accent}
-          />
-        }
-      >
-        {files.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>📂</Text>
-            <Text style={styles.emptyTitle}>No Encrypted Files</Text>
-            <Text style={styles.emptySubtext}>
-              Encrypt a file first and it will appear here!
-            </Text>
-          </View>
-        ) : (
-          files.map((fileName, index) => (
-            <View key={index} style={styles.fileCard}>
-              <View style={styles.fileInfo}>
-                <Text style={styles.fileIcon}>🔒</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.fileName} numberOfLines={1}>
-                    {fileName.replace('.enc', '')}
-                  </Text>
-                  <Text style={styles.fileTag}>
-                    ChaCha20-SHA512 • Encrypted
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.fileActions}>
-                <TouchableOpacity
-                  style={styles.actionBtn}
-                  onPress={() => handleShare(fileName)}
-                >
-                  <Text style={styles.actionBtnText}>📤</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.actionBtn, { borderColor: colors.danger }]}
-                  onPress={() => handleDelete(fileName)}
-                >
-                  <Text style={styles.actionBtnText}>🗑️</Text>
-                </TouchableOpacity>
-              </View>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={loading}
+              onRefresh={loadFiles}
+              tintColor={colors.accent}
+            />
+          }
+        >
+          {files.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyIcon}>📂</Text>
+              <Text style={styles.emptyTitle}>No Encrypted Files</Text>
+              <Text style={styles.emptySubtext}>
+                Encrypt a file first and it will appear here!
+              </Text>
             </View>
-          ))
-        )}
-      </ScrollView>
+          ) : (
+            <View style={isWebDesktop ? styles.desktopGrid : undefined}>
+              {files.map((fileName, index) => (
+                <View key={index} style={[styles.fileCard, isWebDesktop && styles.desktopFileCard]}>
+                  <View style={styles.fileInfo}>
+                    <Text style={styles.fileIcon}>🔒</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.fileName} numberOfLines={1}>
+                        {fileName.replace('.enc', '')}
+                      </Text>
+                      <Text style={styles.fileTag}>
+                        ChaCha20-SHA512 • Encrypted
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.fileActions}>
+                    <TouchableOpacity
+                      style={styles.actionBtn}
+                      onPress={() => handleShare(fileName)}
+                    >
+                      <Text style={styles.actionBtnText}>📤</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.actionBtn, { borderColor: colors.danger }]}
+                      onPress={() => handleDelete(fileName)}
+                    >
+                      <Text style={styles.actionBtnText}>🗑️</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+        </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
+  desktopContainer: { flex: 1, backgroundColor: colors.bg, padding: spacing.screen },
+  desktopWrapper: { flex: 1, width: '100%' },
+  desktopGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  desktopFileCard: {
+    width: '48%',
+    marginHorizontal: 0,
+  },
   header: {
     padding: spacing.screen,
     paddingBottom: 10,

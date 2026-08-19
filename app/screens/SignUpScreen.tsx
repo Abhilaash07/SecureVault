@@ -6,17 +6,20 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  useWindowDimensions,
 } from 'react-native';
 import { colors, fontFamily, spacing, radius } from '../theme';
 import { signUp, logOut } from '../services/auth';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '../services/secureStore';
 import { useSessionStore } from '../services/sessionStore';
+import { showAlert } from '../services/alert';
 
 export default function SignUpScreen({ navigation }: any) {
+  const { width } = useWindowDimensions();
+  const isWebDesktop = Platform.OS === 'web' && width > 768;
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -61,16 +64,16 @@ export default function SignUpScreen({ navigation }: any) {
 
   async function handleSignUp() {
     if (!name || !email || !password || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields');
+      showAlert('Error', 'Please fill in all fields');
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      showAlert('Error', 'Passwords do not match');
       return;
     }
     const strength = getPasswordStrength(password);
     if (strength.score < 4) {
-      Alert.alert(
+      showAlert(
         'Weak Password',
         'For security, your password must be Strong or Very Strong. It must contain at least 8 characters, including uppercase, lowercase, numbers, and symbols/special characters.'
       );
@@ -82,7 +85,7 @@ export default function SignUpScreen({ navigation }: any) {
     if (error) {
       useSessionStore.getState().setIsSigningUp(false);
       setLoading(false);
-      Alert.alert('Sign Up Failed', error);
+      showAlert('Sign Up Failed', error);
     } else {
       try {
         await SecureStore.setItemAsync('user_display_name', name);
@@ -95,7 +98,7 @@ export default function SignUpScreen({ navigation }: any) {
         useSessionStore.getState().setIsSigningUp(false);
         setLoading(false);
 
-        Alert.alert(
+        showAlert(
           'Success',
           'Account created successfully! Please login to your account.',
           [
@@ -119,13 +122,15 @@ export default function SignUpScreen({ navigation }: any) {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={{ flex: 1, backgroundColor: colors.bg }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
-      >
+      <View style={isWebDesktop ? styles.desktopCenterWrapper : { flex: 1 }}>
+        <ScrollView
+          contentContainerStyle={isWebDesktop ? styles.desktopCard : styles.container}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
         <Text style={styles.logo}>🛡️</Text>
         <Text style={styles.title}>Create Account</Text>
         <Text style={styles.subtitle}>Join SecureVault today</Text>
@@ -225,7 +230,8 @@ export default function SignUpScreen({ navigation }: any) {
             Already have an account? Login
           </Text>
         </TouchableOpacity>
-      </ScrollView>
+        </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -236,6 +242,29 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
     justifyContent: 'center',
     padding: spacing.screen,
+  },
+  desktopCenterWrapper: {
+    flex: 1,
+    backgroundColor: '#05070F',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    height: '100%',
+  },
+  desktopCard: {
+    width: 450,
+    backgroundColor: colors.bgCard,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 212, 255, 0.15)',
+    padding: 40,
+    shadowColor: '#00D4FF',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.1,
+    shadowRadius: 30,
+    elevation: 8,
+    alignSelf: 'center',
+    marginVertical: 40,
   },
   logo: { fontSize: 60, textAlign: 'center', marginBottom: 16 },
   title: {

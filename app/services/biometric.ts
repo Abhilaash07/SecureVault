@@ -1,19 +1,27 @@
 import * as LocalAuthentication from 'expo-local-authentication';
 
 export async function isBiometricAvailable(): Promise<boolean> {
-  const hasHardware = await LocalAuthentication.hasHardwareAsync();
-  const isEnrolled = await LocalAuthentication.isEnrolledAsync();
-  return hasHardware && isEnrolled;
+  try {
+    const hasHardware = await LocalAuthentication.hasHardwareAsync();
+    const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+    return Boolean(hasHardware && isEnrolled);
+  } catch {
+    return false;
+  }
 }
 
 export async function getBiometricType(): Promise<string> {
-  const types = await LocalAuthentication.supportedAuthenticationTypesAsync();
-  if (types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
-    return 'Face ID';
-  } else if (types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
-    return 'Fingerprint';
+  try {
+    const types = await LocalAuthentication.supportedAuthenticationTypesAsync();
+    if (types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
+      return 'Face ID';
+    } else if (types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
+      return 'Fingerprint';
+    }
+    return 'Biometric';
+  } catch {
+    return 'Biometric';
   }
-  return 'Biometric';
 }
 
 export async function authenticateWithBiometrics(): Promise<{

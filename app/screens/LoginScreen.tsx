@@ -6,19 +6,22 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  useWindowDimensions,
 } from 'react-native';
+import { showAlert } from '../services/alert';
 import { colors, fontFamily, spacing, radius } from '../theme';
 import { signIn, sendPasswordReset } from '../services/auth';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '../services/secureStore';
 import { useSessionStore } from '../services/sessionStore';
 import { logEvent } from '../services/auditLog';
 import { wipeAllData } from '../services/fileService';
 
 export default function LoginScreen({ navigation }: any) {
+  const { width } = useWindowDimensions();
+  const isWebDesktop = Platform.OS === 'web' && width > 768;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -99,26 +102,35 @@ export default function LoginScreen({ navigation }: any) {
       await SecureStore.setItemAsync('total_failed_attempts', '0');
       await SecureStore.deleteItemAsync('lockout_timestamp');
 
-      Alert.alert(
+      showAlert(
         '🚨 SECURITY SELF-DESTRUCT',
         'Excessive failed login attempts detected. The vault has self-destructed. All files and encryption keys have been permanently wiped.',
         [{ text: 'OK' }]
       );
     } catch (e) {
       console.log('Self destruct error:', e);
-      Alert.alert('Security Notice', 'The vault self-destruct protocol failed to execute fully.');
+      showAlert('Security Notice', 'The vault self-destruct protocol failed to execute fully.');
     }
   }
 
   async function handleLogin() {
     if (lockoutRemaining > 0) {
-      Alert.alert('Lockout Active', `Too many failed attempts. Try again in ${formatLockoutTime(lockoutRemaining)}.`);
+      showAlert('Lockout Active', `Too many failed attempts. Try again in ${formatLockoutTime(lockoutRemaining)}.`);
       return;
     }
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      showAlert('Error', 'Please fill in all fields');
       return;
     }
+    // Demo Account Offline Bypass
+    if (email.toLowerCase() === 'demo@securevault.com' && password === 'demo123') {
+      const setSession = useSessionStore.getState().setSession;
+      setSession({ email: 'demo@securevault.com', uid: 'demo_user_id', displayName: 'Demo User' }, false);
+      await logEvent('SUCCESS', 'Logged in using Demo Bypass', email);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -167,16 +179,16 @@ export default function LoginScreen({ navigation }: any) {
           const noticeMsg = selfDestructEnabled === 'true'
             ? `Too many failed login attempts. Screen locked for 5 minutes.\n\nConsecutive failures: ${totalAttempts}/5 before self-destruct.`
             : 'Too many failed login attempts. Screen locked for 5 minutes.';
-          Alert.alert('System Lockout', noticeMsg);
+          showAlert('System Lockout', noticeMsg);
         } else {
           await SecureStore.setItemAsync('failed_attempts', attempts.toString());
           const remainingMsg = selfDestructEnabled === 'true'
             ? `Attempts remaining: ${3 - attempts}\nSelf-destruct warning: ${5 - totalAttempts} left before complete data wipe.`
             : `Attempts remaining: ${3 - attempts}`;
-          Alert.alert('Login Failed', `${error}\n\n${remainingMsg}`);
+          showAlert('Login Failed', `${error}\n\n${remainingMsg}`);
         }
-      } catch (e) {
-        Alert.alert('Login Failed', error);
+      } catch (e: any) {
+        showAlert('Login Failed', e?.message || (typeof error === 'string' ? error : 'Authentication failed. Please check your credentials.'));
       }
     } else {
       await logEvent('SUCCESS', 'Logged in using Master Password', email);
@@ -188,18 +200,18 @@ export default function LoginScreen({ navigation }: any) {
 
   async function handleForgotPassword() {
     if (lockoutRemaining > 0) {
-      Alert.alert('Lockout Active', `Too many failed attempts. Try again in ${formatLockoutTime(lockoutRemaining)}.`);
+      showAlert('Lockout Active', `Too many failed attempts. Try again in ${formatLockoutTime(lockoutRemaining)}.`);
       return;
     }
     if (!email) {
-      Alert.alert(
+      showAlert(
         'Reset Password',
         'Please enter your email address in the Email field first, then tap Forgot Password.'
       );
       return;
     }
     
-    Alert.alert(
+    showAlert(
       'Reset Password',
       `Send a password reset link to ${email}?`,
       [
@@ -211,9 +223,9 @@ export default function LoginScreen({ navigation }: any) {
             const { error } = await sendPasswordReset(email);
             setLoading(false);
             if (error) {
-              Alert.alert('Error', error);
+              showAlert('Error', error);
             } else {
-              Alert.alert('Success', `Password reset email has been sent to ${email}!`);
+              showAlert('Success', `Password reset email has been sent to ${email}!`);
             }
           },
         },
@@ -223,13 +235,15 @@ export default function LoginScreen({ navigation }: any) {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={{ flex: 1, backgroundColor: colors.bg }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
-      >
+      <View style={isWebDesktop ? styles.desktopCenterWrapper : { flex: 1 }}>
+        <ScrollView
+          contentContainerStyle={isWebDesktop ? styles.desktopCard : styles.container}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
         <Text style={styles.logo}>🔐</Text>
         <Text style={styles.title}>Welcome Back</Text>
         <Text style={styles.subtitle}>Sign in to SecureVault</Text>
@@ -308,7 +322,31 @@ export default function LoginScreen({ navigation }: any) {
             Don't have an account? Sign Up
           </Text>
         </TouchableOpacity>
-      </ScrollView>
+
+        {Platform.OS === 'web' && (
+          <TouchableOpacity
+            style={styles.demoButton}
+            onPress={async () => {
+              setLoading(true);
+              try {
+                const setSession = useSessionStore.getState().setSession;
+                setSession({ 
+                  email: 'demo@securevault.com', 
+                  uid: 'demo_user_id', 
+                  displayName: 'Demo User' 
+                }, false);
+                await logEvent('SUCCESS', 'Logged in using Quick Demo Mode', 'demo@securevault.com');
+              } catch (e) {
+                console.error(e);
+              }
+              setLoading(false);
+            }}
+          >
+            <Text style={styles.demoButtonText}>⚡ Quick Demo Login</Text>
+          </TouchableOpacity>
+        )}
+        </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -319,6 +357,29 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
     justifyContent: 'center',
     padding: spacing.screen,
+  },
+  desktopCenterWrapper: {
+    flex: 1,
+    backgroundColor: '#05070F',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    height: '100%',
+  },
+  desktopCard: {
+    width: 450,
+    backgroundColor: colors.bgCard,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 212, 255, 0.15)',
+    padding: 40,
+    shadowColor: '#00D4FF',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.1,
+    shadowRadius: 30,
+    elevation: 8,
+    alignSelf: 'center',
+    marginVertical: 40,
   },
   logo: { fontSize: 60, textAlign: 'center', marginBottom: 16 },
   title: {
@@ -389,5 +450,20 @@ const styles = StyleSheet.create({
     color: colors.accent,
     fontSize: 13,
     fontWeight: '600',
+  },
+  demoButton: {
+    borderWidth: 1.5,
+    borderColor: colors.success,
+    borderStyle: 'dashed',
+    padding: 14,
+    borderRadius: radius.button,
+    alignItems: 'center',
+    marginTop: 8,
+    backgroundColor: 'rgba(0, 255, 136, 0.04)',
+  },
+  demoButtonText: {
+    color: colors.success,
+    fontSize: 15,
+    fontWeight: 'bold',
   },
 });

@@ -9,8 +9,9 @@ import {
 import { JetBrainsMono_400Regular } from '@expo-google-fonts/jetbrains-mono';
 import * as SplashScreen from 'expo-splash-screen';
 import RootNavigator from './app/navigation';
+import ResponsiveWrapper from './app/components/ResponsiveWrapper';
 
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -21,7 +22,11 @@ export default function App() {
   });
 
   const onLayoutRootView = useCallback(async () => {
-    if (fontsLoaded) await SplashScreen.hideAsync();
+    if (fontsLoaded) {
+      try {
+        await SplashScreen.hideAsync();
+      } catch {}
+    }
   }, [fontsLoaded]);
 
   if (!fontsLoaded) return null;
@@ -31,7 +36,9 @@ export default function App() {
       style={{ flex: 1, backgroundColor: '#0A0E1A' }}
       onLayout={onLayoutRootView}
     >
-      <RootNavigator />
+      <ResponsiveWrapper>
+        <RootNavigator />
+      </ResponsiveWrapper>
     </View>
   );
 }

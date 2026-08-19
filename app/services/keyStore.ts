@@ -1,4 +1,4 @@
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from './secureStore';
 
 export interface KeyEntry {
   name: string;

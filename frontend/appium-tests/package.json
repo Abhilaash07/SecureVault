@@ -1,0 +1,44 @@
+{
+  "name": "securevault-appium-tests",
+  "version": "1.0.0",
+  "description": "Appium E2E mobile test suite for SecureVault React Native app",
+  "main": "run-all.js",
+  "scripts": {
+    "test": "node run-all.js",
+    "test:ci": "cross-env CI_MOCK=true mocha tests/**/*.test.js --timeout 120000 --reporter spec --exit",
+    "test:ci:launch": "cross-env CI_MOCK=true mocha tests/01_launch.test.js --timeout 120000 --reporter spec --exit",
+    "test:ci:auth": "cross-env CI_MOCK=true mocha tests/02_auth_mobile.test.js --timeout 120000 --reporter spec --exit",
+    "test:ci:home": "cross-env CI_MOCK=true mocha tests/03_home_mobile.test.js --timeout 120000 --reporter spec --exit",
+    "test:ci:encrypt": "cross-env CI_MOCK=true mocha tests/04_encrypt_mobile.test.js --timeout 120000 --reporter spec --exit",
+    "test:ci:decrypt": "cross-env CI_MOCK=true mocha tests/05_decrypt_mobile.test.js --timeout 120000 --reporter spec --exit",
+    "test:ci:vault": "cross-env CI_MOCK=true mocha tests/06_vault_mobile.test.js --timeout 120000 --reporter spec --exit",
+    "test:ci:settings": "cross-env CI_MOCK=true mocha tests/07_settings_mobile.test.js --timeout 120000 --reporter spec --exit",
+    "test:ci:security": "cross-env CI_MOCK=true mocha tests/08_security_mobile.test.js --timeout 120000 --reporter spec --exit",
+    "test:ci:uiux": "cross-env CI_MOCK=true mocha tests/09_ui_ux_mobile.test.js --timeout 120000 --reporter spec --exit",
+    "test:ci:validation": "cross-env CI_MOCK=true mocha tests/10_validation_mobile.test.js --timeout 120000 --reporter spec --exit",
+    "test:launch": "mocha tests/01_launch.test.js --timeout 60000",
+    "test:auth": "mocha tests/02_auth_mobile.test.js --timeout 60000",
+    "test:home": "mocha tests/03_home_mobile.test.js --timeout 60000",
+    "test:encrypt": "mocha tests/04_encrypt_mobile.test.js --timeout 60000",
+    "test:decrypt": "mocha tests/05_decrypt_mobile.test.js --timeout 60000",
+    "test:vault": "mocha tests/06_vault_mobile.test.js --timeout 60000",
+    "test:settings": "mocha tests/07_settings_mobile.test.js --timeout 60000",
+    "test:security": "mocha tests/08_security_mobile.test.js --timeout 60000",
+    "test:uiux": "mocha tests/09_ui_ux_mobile.test.js --timeout 60000",
+    "test:validation": "mocha tests/10_validation_mobile.test.js --timeout 60000"
+  },
+  "dependencies": {
+    "webdriverio": "^8.39.0",
+    "@wdio/appium-service": "^8.39.0",
+    "appium": "^2.5.4",
+    "appium-uiautomator2-driver": "^3.0.0",
+    "exceljs": "^4.4.0",
+    "mocha": "^10.4.0",
+    "chai": "^5.1.1",
+    "chai-as-promised": "^8.0.0",
+    "cross-env": "^7.0.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

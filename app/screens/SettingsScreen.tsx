@@ -6,18 +6,19 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
-  Alert,
   Switch,
   AppState,
   TextInput,
   Modal,
   FlatList,
+  Platform,
 } from 'react-native';
+import { showAlert } from '../services/alert';
 import { colors, spacing, radius } from '../theme';
 import { auth } from '../services/firebaseConfig';
 import { logOut } from '../services/auth';
 import { listEncryptedFiles, deleteFile, getFilePath } from '../services/fileService';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '../services/secureStore';
 import { useSessionStore } from '../services/sessionStore';
 import { getLogs, clearLogs } from '../services/auditLog';
 
@@ -97,7 +98,7 @@ export default function SettingsScreen() {
     await SecureStore.setItemAsync('biometric_enabled', value.toString());
     setBiometricEnabled(value);
     if (value) {
-      Alert.alert(
+      showAlert(
         'Biometric Enabled ✅',
         'You will be asked to authenticate next time you open the app!'
       );
@@ -108,7 +109,7 @@ export default function SettingsScreen() {
     await SecureStore.setItemAsync('auto_lock', value.toString());
     setAutoLock(value);
     if (value) {
-      Alert.alert(
+      showAlert(
         'Auto Lock Enabled ✅',
         `App will lock after ${autoLockMinutes} minutes of inactivity!`
       );
@@ -122,7 +123,7 @@ export default function SettingsScreen() {
 
   async function handleDecoyToggle(value: boolean) {
     if (value && !decoyPassword) {
-      Alert.alert(
+      showAlert(
         'Decoy Password Required',
         'Please configure a decoy password first before enabling decoy mode.'
       );
@@ -136,7 +137,7 @@ export default function SettingsScreen() {
 
   async function handleSelfDestructToggle(value: boolean) {
     if (value) {
-      Alert.alert(
+      showAlert(
         '⚠️ Warning: Self-Destruct',
         'If enabled, ALL your encrypted files and keys will be permanently deleted after 5 failed login attempts. Make sure you remember your password!',
         [
@@ -163,7 +164,7 @@ export default function SettingsScreen() {
 
   async function saveDecoyPassword() {
     if (!decoyInput || decoyInput.trim() === '') {
-      Alert.alert('Error', 'Decoy password cannot be empty.');
+      showAlert('Error', 'Decoy password cannot be empty.');
       return;
     }
     await SecureStore.setItemAsync('decoy_password', decoyInput);
@@ -171,7 +172,7 @@ export default function SettingsScreen() {
     setDecoyPassword(decoyInput);
     setDecoyEnabled(true);
     setShowDecoyInput(false);
-    Alert.alert(
+    showAlert(
       'Decoy Configuration Saved',
       'Entering this password at login will now open the decoy vault screen instead of your real vault.'
     );
@@ -184,7 +185,7 @@ export default function SettingsScreen() {
   }
 
   async function handleClearLogs() {
-    Alert.alert(
+    showAlert(
       'Clear Access Logs',
       'Are you sure you want to clear your security login audit logs?',
       [
@@ -195,7 +196,7 @@ export default function SettingsScreen() {
           onPress: async () => {
             await clearLogs();
             setAuditLogs([]);
-            Alert.alert('Cleared ✅', 'Access logs have been wiped.');
+            showAlert('Cleared ✅', 'Access logs have been wiped.');
           },
         },
       ]
@@ -203,7 +204,7 @@ export default function SettingsScreen() {
   }
 
   async function handleLogout() {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
+    showAlert('Logout', 'Are you sure you want to logout?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Logout',
@@ -214,7 +215,7 @@ export default function SettingsScreen() {
   }
 
   async function handleClearCache() {
-    Alert.alert(
+    showAlert(
       'Clear All Files & Stats',
       'This will permanently delete all encrypted files and reset your decryption statistics. This cannot be undone!',
       [
@@ -226,7 +227,7 @@ export default function SettingsScreen() {
             if (isDecoy) {
               setFileCount(0);
               await SecureStore.deleteItemAsync('decrypt_count_decoy');
-              Alert.alert('Done', 'All encrypted files have been deleted.');
+              showAlert('Done', 'All encrypted files have been deleted.');
             } else {
               const files = await listEncryptedFiles();
               for (const file of files) {
@@ -238,7 +239,7 @@ export default function SettingsScreen() {
               await SecureStore.deleteItemAsync(key);
               await SecureStore.deleteItemAsync('decrypt_count');
               await loadStats();
-              Alert.alert('Done', 'All encrypted files and stats have been cleared.');
+              showAlert('Done', 'All encrypted files and stats have been cleared.');
             }
           },
         },
@@ -288,19 +289,23 @@ export default function SettingsScreen() {
         {/* Security Section */}
         <Text style={styles.sectionTitle}>🔒 Security</Text>
         <View style={styles.section}>
-          <View style={styles.settingRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.settingLabel}>Biometric Lock</Text>
-              <Text style={styles.settingDesc}>Use fingerprint or face ID</Text>
-            </View>
-            <Switch
-              value={biometricEnabled}
-              onValueChange={handleBiometricToggle}
-              trackColor={{ false: colors.borderDim, true: colors.accent }}
-              thumbColor={colors.textPrimary}
-            />
-          </View>
-          <View style={styles.divider} />
+          {Platform.OS !== 'web' && (
+            <>
+              <View style={styles.settingRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.settingLabel}>Biometric Lock</Text>
+                  <Text style={styles.settingDesc}>Use fingerprint or face ID</Text>
+                </View>
+                <Switch
+                  value={biometricEnabled}
+                  onValueChange={handleBiometricToggle}
+                  trackColor={{ false: colors.borderDim, true: colors.accent }}
+                  thumbColor={colors.textPrimary}
+                />
+              </View>
+              <View style={styles.divider} />
+            </>
+          )}
           <View style={styles.settingRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.settingLabel}>Auto Lock</Text>

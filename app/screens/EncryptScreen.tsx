@@ -7,9 +7,11 @@ import {
   SafeAreaView,
   ScrollView,
   ActivityIndicator,
-  Alert,
   TextInput,
+  Platform,
+  useWindowDimensions,
 } from 'react-native';
+import { showAlert } from '../services/alert';
 import { colors, spacing, radius } from '../theme';
 import { pickFile, readFileAsBase64, saveEncryptedFile } from '../services/fileService';
 import { encryptData, generateKey, encodeBase64 } from '../services/encryption';
@@ -17,6 +19,8 @@ import { saveKey } from '../services/keyStore';
 import { useSessionStore } from '../services/sessionStore';
 
 export default function EncryptScreen() {
+  const { width } = useWindowDimensions();
+  const isWebDesktop = Platform.OS === 'web' && width > 768;
   const isDecoy = useSessionStore((state) => state.isDecoy);
   const [selectedFile, setSelectedFile] = useState<any>(null);
   const [password, setPassword] = useState('');
@@ -38,7 +42,7 @@ export default function EncryptScreen() {
         setSuccess(false);
       }
     } catch (err: any) {
-      Alert.alert('File Picker Error', err.message || 'Failed to select file');
+      showAlert('File Picker Error', err.message || 'Failed to select file');
     }
   }
 
@@ -50,15 +54,15 @@ export default function EncryptScreen() {
 
   async function handleEncrypt() {
     if (!selectedFile) {
-      Alert.alert('Error', 'Please select a file first');
+      showAlert('Error', 'Please select a file first');
       return;
     }
     if (!useAutoKey && !password) {
-      Alert.alert('Error', 'Please enter a password');
+      showAlert('Error', 'Please enter a password');
       return;
     }
     if (!useAutoKey && password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      showAlert('Error', 'Passwords do not match');
       return;
     }
 
@@ -96,7 +100,7 @@ export default function EncryptScreen() {
         }
       }
     } catch (error: any) {
-      Alert.alert('Encryption Failed', error.message);
+      showAlert('Encryption Failed', error.message);
     }
     setLoading(false);
   }
@@ -161,10 +165,15 @@ export default function EncryptScreen() {
   style={styles.button}
   onPress={async () => {
     if (isDecoy) {
-      Alert.alert(
+      showAlert(
         'Sandbox Restriction',
         'Decoy files cannot be saved to device storage due to secure sandbox policies.'
       );
+      return;
+    }
+    if (Platform.OS === 'web') {
+      const { shareFile } = await import('../services/fileService');
+      await shareFile(encryptedPath);
       return;
     }
     try {
@@ -172,7 +181,7 @@ export default function EncryptScreen() {
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status === 'granted') {
         await MediaLibrary.saveToLibraryAsync(encryptedPath);
-        Alert.alert('Saved!', 'Encrypted file saved to your device storage!');
+        showAlert('Saved!', 'Encrypted file saved to your device storage!');
       } else {
         const { shareFile } = await import('../services/fileService');
         await shareFile(encryptedPath);
@@ -190,7 +199,7 @@ export default function EncryptScreen() {
   style={styles.shareButton}
   onPress={async () => {
     if (isDecoy) {
-      Alert.alert(
+      showAlert(
         'Sharing Restricted',
         'Decoy session files cannot be shared outside the secure sandbox due to corporate security policies.'
       );
@@ -206,6 +215,93 @@ export default function EncryptScreen() {
 <TouchableOpacity style={styles.outlineButton} onPress={handleReset}>
   <Text style={styles.outlineButtonText}>Encrypt Another File</Text>
 </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  if (isWebDesktop) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ScrollView contentContainerStyle={[styles.scroll, { flexDirection: 'row', gap: 24, alignItems: 'flex-start' }]} keyboardShouldPersistTaps="handled">
+          {/* Left Column - File Picker */}
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title}>🔒 Encrypt File</Text>
+            <Text style={styles.subtitle}>Secure your files with ChaCha20-SHA512</Text>
+            <TouchableOpacity style={[styles.filePicker, { minHeight: 220 }]} onPress={handlePickFile}>
+              {selectedFile ? (
+                <View style={styles.fileSelected}>
+                  <Text style={styles.fileIcon}>📄</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.fileName} numberOfLines={2}>{selectedFile.name}</Text>
+                    <Text style={styles.fileSize}>{(selectedFile.size / 1024).toFixed(1)} KB</Text>
+                  </View>
+                  <Text style={styles.changeText}>Change</Text>
+                </View>
+              ) : (
+                <View style={styles.fileEmpty}>
+                  <Text style={styles.uploadIcon}>☁️</Text>
+                  <Text style={styles.uploadText}>Click to select a file</Text>
+                  <Text style={styles.uploadSubtext}>PDF, JPG, DOCX, MP4, ZIP supported</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Right Column - Key/Password Controls */}
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.title, { marginTop: 10 }]}>Encryption Key</Text>
+            <Text style={styles.subtitle}>Choose your key method</Text>
+
+            <View style={styles.toggleRow}>
+              <TouchableOpacity style={[styles.toggleBtn, !useAutoKey && styles.toggleActive]} onPress={() => setUseAutoKey(false)}>
+                <Text style={[styles.toggleText, !useAutoKey && styles.toggleTextActive]}>Use Password</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.toggleBtn, useAutoKey && styles.toggleActive]} onPress={handleGenerateKey}>
+                <Text style={[styles.toggleText, useAutoKey && styles.toggleTextActive]}>Auto Key</Text>
+              </TouchableOpacity>
+            </View>
+
+            {!useAutoKey ? (
+              <View>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Password</Text>
+                  <View style={styles.passwordRow}>
+                    <TextInput style={[styles.input, { flex: 1 }]} placeholder="Enter encryption password" placeholderTextColor={colors.textMuted} value={password} onChangeText={setPassword} secureTextEntry={!showPassword} />
+                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
+                      <Text style={{ color: colors.accent }}>{showPassword ? '🙈' : '👁️'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Confirm Password</Text>
+                  <View style={styles.passwordRow}>
+                    <TextInput style={[styles.input, { flex: 1 }]} placeholder="Confirm password" placeholderTextColor={colors.textMuted} value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry={!showConfirmPassword} />
+                    <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeButton}>
+                      <Text style={{ color: colors.accent }}>{showConfirmPassword ? '🙈' : '👁️'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.autoKeyContainer}>
+                <Text style={styles.label}>Generated Key</Text>
+                <Text style={styles.autoKeyText} selectable numberOfLines={3}>{autoKey}</Text>
+                <Text style={styles.autoKeyWarning}>⚠️ Save this key! You'll need it to decrypt.</Text>
+              </View>
+            )}
+
+            <TouchableOpacity style={[styles.button, loading && { opacity: 0.7 }]} onPress={handleEncrypt} disabled={loading}>
+              {loading ? (
+                <View style={styles.loadingRow}>
+                  <ActivityIndicator color={colors.bg} />
+                  <Text style={[styles.buttonText, { marginLeft: 10 }]}>Encrypting...</Text>
+                </View>
+              ) : (
+                <Text style={styles.buttonText}>🔒 Encrypt Now</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </SafeAreaView>
     );

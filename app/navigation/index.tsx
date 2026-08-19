@@ -1,18 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { View, ActivityIndicator, Text, TouchableOpacity, StyleSheet, AppState } from 'react-native';
+import { View, ActivityIndicator, Text, TouchableOpacity, StyleSheet, AppState, Platform } from 'react-native';
 import { onAuthChange } from '../services/auth';
 import { authenticateWithBiometrics, isBiometricAvailable } from '../services/biometric';
 import AuthStack from './AuthStack';
 import AppTabs from './AppTabs';
 import { colors } from '../theme';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '../services/secureStore';
 
 import { useSessionStore } from '../services/sessionStore';
-import { usePreventScreenCapture } from 'expo-screen-capture';
 
 export default function RootNavigator() {
-  usePreventScreenCapture();
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      import('expo-screen-capture')
+        .then(({ preventScreenCaptureAsync }) => {
+          preventScreenCaptureAsync().catch(() => {});
+        })
+        .catch(() => {});
+    }
+  }, []);
 
   const user = useSessionStore((state) => state.user);
   const setSession = useSessionStore((state) => state.setSession);
@@ -35,7 +42,7 @@ export default function RootNavigator() {
         setLoading(false);
         return;
       }
-      if (!currentSession.isDecoy) {
+      if (!currentSession.isDecoy && currentSession.user?.uid !== 'demo_user_id') {
         if (currentUser) {
           if (currentUser.displayName) {
             await SecureStore.setItemAsync('user_display_name', currentUser.displayName);
