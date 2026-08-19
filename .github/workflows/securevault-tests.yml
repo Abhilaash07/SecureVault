@@ -1,0 +1,74 @@
+name: SecureVault E2E Tests
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+  workflow_dispatch:
+
+jobs:
+  web-tests:
+    name: Selenium Web Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        working-directory: ./selenium-tests
+        run: npm ci || npm install
+        
+      - name: Run Web Tests (Mocked for CI)
+        working-directory: ./selenium-tests
+        run: npm run test:ci
+
+  mobile-tests:
+    name: Appium Mobile Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        working-directory: ./frontend/appium-tests
+        run: npm ci || npm install
+        
+      - name: Run Mobile Tests (Mocked for CI)
+        working-directory: ./frontend/appium-tests
+        run: npm run test:ci
+
+  load-tests:
+    name: k6 Load & Baseline Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          
+      - name: Install dependencies
+        working-directory: ./load-tests
+        run: npm ci || npm install
+        
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+          
+      - name: Run Load Tests
+        working-directory: ./load-tests
+        run: node run-load-test.js
+        
+      - name: Upload Load Test Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-test-report
+          path: ./load-tests/reports/load-test-report.xlsx
