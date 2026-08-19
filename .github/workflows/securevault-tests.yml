@@ -19,11 +19,21 @@ jobs:
       
       - name: Install dependencies
         working-directory: ./selenium-tests
-        run: npm ci || npm install
+        run: npm install
         
       - name: Run Web Tests (Mocked for CI)
         working-directory: ./selenium-tests
         run: npm run test:ci
+
+      - name: Generate and Upload Web Excel Report
+        working-directory: ./selenium-tests
+        run: node run-all.js
+        
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: selenium-web-test-report
+          path: ./selenium-tests/reports/*.xlsx
 
   mobile-tests:
     name: Appium Mobile Tests
@@ -36,11 +46,21 @@ jobs:
       
       - name: Install dependencies
         working-directory: ./frontend/appium-tests
-        run: npm ci || npm install
+        run: npm install
         
       - name: Run Mobile Tests (Mocked for CI)
         working-directory: ./frontend/appium-tests
         run: npm run test:ci
+
+      - name: Generate and Upload Mobile Excel Report
+        working-directory: ./frontend/appium-tests
+        run: node run-all.js
+        
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: appium-mobile-test-report
+          path: ./frontend/appium-tests/reports/*.xlsx
 
   load-tests:
     name: k6 Load & Baseline Tests
@@ -53,22 +73,15 @@ jobs:
           
       - name: Install dependencies
         working-directory: ./load-tests
-        run: npm ci || npm install
-        
-      - name: Install k6
-        run: |
-          sudo gpg -k
-          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
-          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
-          sudo apt-get update
-          sudo apt-get install k6
+        run: npm install
           
-      - name: Run Load Tests
+      - name: Run Load Tests (300 VUs)
         working-directory: ./load-tests
         run: node run-load-test.js
         
       - name: Upload Load Test Report
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: load-test-report
-          path: ./load-tests/reports/load-test-report.xlsx
+          path: ./load-tests/reports/*.xlsx
