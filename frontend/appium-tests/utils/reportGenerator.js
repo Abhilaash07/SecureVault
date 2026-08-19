@@ -118,9 +118,19 @@ async function generateReport(suiteResults, outputDir, filename) {
   });
 
   const filepath = path.join(outputDir, filename);
-  await workbook.xlsx.writeFile(filepath);
-  console.log(`\n✅ Appium Report saved: ${filepath}\n`);
-  return filepath;
+  try {
+    await workbook.xlsx.writeFile(filepath);
+    console.log(`\n✅ Appium Report saved: ${filepath}\n`);
+    return filepath;
+  } catch (err) {
+    if (err.code === 'EBUSY') {
+      const fallbackPath = path.join(outputDir, `appium-test-report-${Date.now()}.xlsx`);
+      await workbook.xlsx.writeFile(fallbackPath);
+      console.log(`\n⚠️ Original file was locked in Excel. Saved new report to:\n   ${fallbackPath}\n`);
+      return fallbackPath;
+    }
+    throw err;
+  }
 }
 
 module.exports = { generateReport };
